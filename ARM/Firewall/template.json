@@ -1,0 +1,211 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "azureFirewalls_hubfirewall_name": {
+            "defaultValue": "hubfirewall",
+            "type": "String"
+        },
+        "publicIPAddresses_firewall_pip_externalid": {
+            "defaultValue": "/subscriptions/9907fc36-386a-48e6-9b00-0470d5f7cab7/resourceGroups/forcetunnling/providers/Microsoft.Network/publicIPAddresses/firewall-pip",
+            "type": "String"
+        },
+        "virtualNetworks_hub_externalid": {
+            "defaultValue": "/subscriptions/9907fc36-386a-48e6-9b00-0470d5f7cab7/resourceGroups/forcetunnling/providers/Microsoft.Network/virtualNetworks/hub",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Network/azureFirewalls",
+            "apiVersion": "2020-05-01",
+            "name": "[parameters('azureFirewalls_hubfirewall_name')]",
+            "location": "australiasoutheast",
+            "properties": {
+                "sku": {
+                    "name": "AZFW_VNet",
+                    "tier": "Standard"
+                },
+                "threatIntelMode": "Alert",
+                "additionalProperties": {},
+                "ipConfigurations": [
+                    {
+                        "name": "firewall-pip",
+                        "properties": {
+                            "publicIPAddress": {
+                                "id": "[parameters('publicIPAddresses_firewall_pip_externalid')]"
+                            },
+                            "subnet": {
+                                "id": "[concat(parameters('virtualNetworks_hub_externalid'), '/subnets/AzureFirewallSubnet')]"
+                            }
+                        }
+                    }
+                ],
+                "networkRuleCollections": [
+                    {
+                        "name": "transit-route-Spoke1-Spoke2",
+                        "properties": {
+                            "priority": 101,
+                            "action": {
+                                "type": "Allow"
+                            },
+                            "rules": [
+                                {
+                                    "name": "Spok1-Spoke2",
+                                    "protocols": [
+                                        "Any"
+                                    ],
+                                    "sourceAddresses": [
+                                        "172.18.0.0/16"
+                                    ],
+                                    "destinationAddresses": [
+                                        "172.19.0.0/16"
+                                    ],
+                                    "sourceIpGroups": [],
+                                    "destinationIpGroups": [],
+                                    "destinationFqdns": [],
+                                    "destinationPorts": [
+                                        "*"
+                                    ]
+                                },
+                                {
+                                    "name": "Spok2-Spoke1",
+                                    "protocols": [
+                                        "Any"
+                                    ],
+                                    "sourceAddresses": [
+                                        "172.19.0.0/16"
+                                    ],
+                                    "destinationAddresses": [
+                                        "172.18.0.0/16"
+                                    ],
+                                    "sourceIpGroups": [],
+                                    "destinationIpGroups": [],
+                                    "destinationFqdns": [],
+                                    "destinationPorts": [
+                                        "*"
+                                    ]
+                                },
+                                {
+                                    "name": "VM1-VM3-PublicIpAccess",
+                                    "protocols": [
+                                        "Any"
+                                    ],
+                                    "sourceAddresses": [
+                                        "172.18.0.4"
+                                    ],
+                                    "destinationAddresses": [
+                                        "52.255.49.60"
+                                    ],
+                                    "sourceIpGroups": [],
+                                    "destinationIpGroups": [],
+                                    "destinationFqdns": [],
+                                    "destinationPorts": [
+                                        "*"
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "applicationRuleCollections": [
+                    {
+                        "name": "BlockMSN",
+                        "properties": {
+                            "priority": 100,
+                            "action": {
+                                "type": "Allow"
+                            },
+                            "rules": [
+                                {
+                                    "name": "MSN VM1",
+                                    "protocols": [
+                                        {
+                                            "protocolType": "Https",
+                                            "port": 443
+                                        }
+                                    ],
+                                    "fqdnTags": [],
+                                    "targetFqdns": [
+                                        "www.msn.com"
+                                    ],
+                                    "sourceAddresses": [
+                                        "172.18.0.4"
+                                    ],
+                                    "sourceIpGroups": []
+                                },
+                                {
+                                    "name": "MSN VM3",
+                                    "protocols": [
+                                        {
+                                            "protocolType": "Https",
+                                            "port": 443
+                                        }
+                                    ],
+                                    "fqdnTags": [],
+                                    "targetFqdns": [
+                                        "www.msn.com"
+                                    ],
+                                    "sourceAddresses": [
+                                        "172.18.0.68"
+                                    ],
+                                    "sourceIpGroups": []
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "natRuleCollections": [
+                    {
+                        "name": "rdp",
+                        "properties": {
+                            "priority": 101,
+                            "action": {
+                                "type": "Dnat"
+                            },
+                            "rules": [
+                                {
+                                    "name": "rdp-vm1",
+                                    "protocols": [
+                                        "TCP"
+                                    ],
+                                    "translatedAddress": "172.18.0.4",
+                                    "translatedPort": "3389",
+                                    "sourceAddresses": [
+                                        "*"
+                                    ],
+                                    "sourceIpGroups": [],
+                                    "destinationAddresses": [
+                                        "104.209.73.170"
+                                    ],
+                                    "destinationPorts": [
+                                        "3389"
+                                    ]
+                                },
+                                {
+                                    "name": "rdp-vm3",
+                                    "protocols": [
+                                        "TCP"
+                                    ],
+                                    "translatedAddress": "172.18.0.68",
+                                    "translatedPort": "3389",
+                                    "sourceAddresses": [
+                                        "*"
+                                    ],
+                                    "sourceIpGroups": [],
+                                    "destinationAddresses": [
+                                        "104.209.73.170"
+                                    ],
+                                    "destinationPorts": [
+                                        "3390"
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
