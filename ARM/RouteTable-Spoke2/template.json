@@ -1,0 +1,45 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "routeTables_spoke2_rt_name": {
+            "defaultValue": "spoke2-rt",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Network/routeTables",
+            "apiVersion": "2020-05-01",
+            "name": "[parameters('routeTables_spoke2_rt_name')]",
+            "location": "australiacentral",
+            "properties": {
+                "disableBgpRoutePropagation": false,
+                "routes": [
+                    {
+                        "name": "to-Spok1",
+                        "properties": {
+                            "addressPrefix": "172.18.0.0/16",
+                            "nextHopType": "VirtualAppliance",
+                            "nextHopIpAddress": "172.17.1.4"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/routeTables/routes",
+            "apiVersion": "2020-05-01",
+            "name": "[concat(parameters('routeTables_spoke2_rt_name'), '/to-Spok1')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/routeTables', parameters('routeTables_spoke2_rt_name'))]"
+            ],
+            "properties": {
+                "addressPrefix": "172.18.0.0/16",
+                "nextHopType": "VirtualAppliance",
+                "nextHopIpAddress": "172.17.1.4"
+            }
+        }
+    ]
+}
